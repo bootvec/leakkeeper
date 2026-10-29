@@ -1,0 +1,65 @@
+{
+  "ip_route_all": [
+    {"dst": "default", "dev": "wg-exit", "table": "100", "scope": "link", "flags": []},
+    {"dst": "default", "gateway": "203.0.113.1", "dev": "eth0", "table": "main", "protocol": "static", "flags": []},
+    {"dst": "198.51.100.0/24", "dev": "eth0", "table": "100", "scope": "link", "flags": []},
+    {"dst": "203.0.113.0/24", "dev": "eth0", "table": "main", "protocol": "kernel", "scope": "link", "prefsrc": "203.0.113.153", "flags": []},
+    {"type": "local", "dst": "127.0.0.1", "dev": "lo", "table": "local", "protocol": "kernel", "scope": "host", "flags": []}
+  ],
+  "ip_rule": [
+    {"priority": 0, "src": "all", "table": "local"},
+    {"priority": 86, "src": "all", "sport": 22, "table": "main"},
+    {"priority": 200, "src": "all", "table": "100"},
+    {"priority": 32766, "src": "all", "table": "main"}
+  ],
+  "ip_addr": [
+    {
+      "ifindex": 1, "ifname": "lo", "flags": ["LOOPBACK", "UP"], "mtu": 65536,
+      "addr_info": [{"family": "inet", "local": "127.0.0.1", "prefixlen": 8, "scope": "host"}]
+    },
+    {
+      "ifindex": 2, "ifname": "eth0", "flags": ["BROADCAST", "UP"], "mtu": 1500,
+      "addr_info": [
+        {"family": "inet", "local": "203.0.113.153", "prefixlen": 24, "scope": "global"},
+        {"family": "inet6", "local": "2001:db8::1", "prefixlen": 64, "scope": "global"}
+      ]
+    },
+    {
+      "ifindex": 3, "ifname": "wg-exit", "flags": ["POINTOPOINT", "UP"], "mtu": 1380,
+      "addr_info": [{"family": "inet", "local": "10.0.0.2", "prefixlen": 32, "scope": "global"}]
+    }
+  ],
+  "ip_link": [
+    {"ifindex": 1, "ifname": "lo", "flags": ["LOOPBACK", "UP"], "mtu": 65536},
+    {"ifindex": 2, "ifname": "eth0", "flags": ["BROADCAST", "UP"], "mtu": 1500},
+    {"ifindex": 3, "ifname": "wg-exit", "flags": ["POINTOPOINT", "UP"], "mtu": 1380}
+  ],
+  "nft_ruleset": {
+    "nftables": [
+      {"metainfo": {"version": "1.1.0", "json_schema_version": 1}},
+      {"table": {"family": "inet", "name": "killswitch", "handle": 1}},
+      {
+        "chain": {
+          "family": "inet", "table": "killswitch", "name": "output", "handle": 1,
+          "type": "filter", "hook": "output", "prio": -1, "policy": "drop"
+        }
+      },
+      {
+        "rule": {
+          "family": "inet", "table": "killswitch", "chain": "output", "handle": 2,
+          "expr": [
+            {"match": {"op": "==", "left": {"meta": {"key": "oifname"}}, "right": "eth0"}},
+            {"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": 22}},
+            {"accept": null}
+          ]
+        }
+      },
+      {
+        "rule": {
+          "family": "inet", "table": "killswitch", "chain": "output", "handle": 3,
+          "expr": [{"counter": {"packets": 0, "bytes": 0}}, {"drop": null}]
+        }
+      }
+    ]
+  }
+}

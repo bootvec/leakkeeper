@@ -1,0 +1,2 @@
+# Repository-specific strings that must never be published.
+# Patterns here are public: do not put the secret itself in this file.

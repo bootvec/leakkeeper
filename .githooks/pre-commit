@@ -1,0 +1,7 @@
+#!/bin/sh
+# Block commits that would publish private IPs, secrets, e-mails or home paths.
+set -eu
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+scanner="$root/scripts/leakscan.py"
+[ -f "$scanner" ] || exit 0
+exec python3 "$scanner" --staged
